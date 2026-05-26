@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import { Schema, model } from "mongoose";
 
 const AIAnalysisSchema = new Schema(
@@ -38,4 +39,7 @@ const AIAnalysisSchema = new Schema(
   }
 );
 
-export default model("AIAnalysis", AIAnalysisSchema);
+export default mongoose.models.AIAnalysis || mongoose.model("AIAnalysis", AIAnalysisSchema);
+
+
+

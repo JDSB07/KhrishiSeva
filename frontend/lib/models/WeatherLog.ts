@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import { Schema, model } from "mongoose";
 
 const WeatherLogSchema = new Schema(
@@ -29,4 +30,7 @@ const WeatherLogSchema = new Schema(
   }
 );
 
-export default model("WeatherLog", WeatherLogSchema);
+export default mongoose.models.WeatherLog || mongoose.model("WeatherLog", WeatherLogSchema);
+
+
+

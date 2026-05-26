@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import { Schema, model } from "mongoose";
 
 const NotificationSchema = new Schema(
@@ -46,4 +47,7 @@ const NotificationSchema = new Schema(
   }
 );
 
-export default model("Notification", NotificationSchema);
+export default mongoose.models.Notification || mongoose.model("Notification", NotificationSchema);
+
+
+

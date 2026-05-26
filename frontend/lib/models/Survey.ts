@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import { Schema, model, Types } from "mongoose";
 
 const SurveySchema = new Schema(
@@ -105,4 +106,7 @@ const SurveySchema = new Schema(
   }
 );
 
-export default model("Survey", SurveySchema);
+export default mongoose.models.Survey || mongoose.model("Survey", SurveySchema);
+
+
+

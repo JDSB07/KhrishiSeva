@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import { Schema, model } from "mongoose";
 
 const ClaimSchema = new Schema(
@@ -45,4 +46,7 @@ const ClaimSchema = new Schema(
   }
 );
 
-export default model("Claim", ClaimSchema);
+export default mongoose.models.Claim || mongoose.model("Claim", ClaimSchema);
+
+
+

@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import { Schema, model } from "mongoose";
 import bcrypt from "bcryptjs";
 
@@ -55,14 +56,14 @@ const UserSchema = new Schema(
 
 // Hash password before saving
 UserSchema.pre("save", async function (next) {
-  if (!this.isModified("password")) return next();
+  if (!this.isModified("password")) return;
   
   try {
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
-    next();
+    return;
   } catch (err: any) {
-    next(err);
+    throw err;
   }
 });
 
@@ -71,4 +72,7 @@ UserSchema.methods.comparePassword = async function (candidatePassword: string):
   return bcrypt.compare(candidatePassword, this.password);
 };
 
-export default model("User", UserSchema);
+export default mongoose.models.User || mongoose.model("User", UserSchema);
+
+
+

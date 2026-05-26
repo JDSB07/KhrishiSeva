@@ -1,4 +1,3 @@
-import fetch from "node-fetch";
 
 export interface WeatherResult {
   temp: number;
