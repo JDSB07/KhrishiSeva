@@ -15,7 +15,8 @@ import {
   WifiOff, 
   AlertTriangle,
   CheckCircle2,
-  XCircle
+  XCircle,
+  Trash2
 } from "lucide-react";
 import api from "../../../services/api";
 
@@ -104,6 +105,7 @@ export default function AewDashboard() {
     const updated = drafts.filter(d => d.id !== id);
     setDrafts(updated);
     localStorage.setItem("survey_drafts", JSON.stringify(updated));
+    localStorage.removeItem(`draft_${id}`);
   };
 
   const handleSyncDrafts = async () => {
@@ -261,9 +263,13 @@ export default function AewDashboard() {
               </div>
             ) : (
               drafts.map((d) => (
-                <div key={d.id} className="rounded-xl border border-neutral-100 p-4 dark:border-neutral-800 flex justify-between items-start bg-neutral-50/50 dark:bg-dark-bg/25">
-                  <div>
-                    <h4 className="text-sm font-bold text-neutral-800 dark:text-neutral-200">
+                <div 
+                  key={d.id} 
+                  onClick={() => router.push(`/aew/survey?draftId=${d.id}`)}
+                  className="group relative rounded-xl border border-neutral-100 p-4 dark:border-neutral-800 flex justify-between items-center bg-neutral-50/50 dark:bg-dark-bg/25 hover:border-brand-300 dark:hover:border-brand-800 transition-all cursor-pointer"
+                >
+                  <div className="flex-1">
+                    <h4 className="text-sm font-bold text-neutral-800 dark:text-neutral-200 group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors">
                       {d.farmerName}
                     </h4>
                     <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
@@ -273,6 +279,18 @@ export default function AewDashboard() {
                       Saved {new Date(d.savedAt).toLocaleDateString()}
                     </span>
                   </div>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (confirm("Are you sure you want to delete this draft?")) {
+                        deleteDraft(d.id);
+                      }
+                    }}
+                    className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg text-neutral-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition-all"
+                    title="Delete Draft"
+                  >
+                    <Trash2 className="h-4.5 w-4.5" />
+                  </button>
                 </div>
               ))
             )}

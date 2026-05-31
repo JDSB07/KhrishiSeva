@@ -65,6 +65,44 @@ export default function SurveyFormPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
 
+  const [draftId, setDraftId] = useState<string | null>(null);
+
+  // Load draft if draftId is in URL search params
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const dId = params.get("draftId");
+      if (dId) {
+        setDraftId(dId);
+        const draftStr = localStorage.getItem(`draft_${dId}`);
+        if (draftStr) {
+          try {
+            const draft = JSON.parse(draftStr);
+            setFarmerName(draft.farmerName || "");
+            setFarmerPhone(draft.farmerPhone || "");
+            setPolicyId(draft.policyId || "");
+            setCropName(draft.cropName || CROPS[0]);
+            setCropType(draft.cropType || "");
+            setArea(draft.area ? String(draft.area) : "");
+            setSowingDate(draft.sowingDate || "");
+            setIsDamaged(draft.isDamaged || false);
+            if (draft.damageDetails) {
+              setDamageType(draft.damageDetails.damageType || DAMAGE_CATEGORIES[0]);
+              setDamageDescription(draft.damageDetails.damageDescription || "");
+              setDamageSeverity(draft.damageDetails.damageSeverity || SEVERITIES[0]);
+            }
+            setImages(draft.images || []);
+            if (draft.location) {
+              setLocation(draft.location);
+            }
+          } catch (e) {
+            console.error("Failed to parse draft:", e);
+          }
+        }
+      }
+    }
+  }, []);
+
   // Camera capture states
   const [cameraActive, setCameraActive] = useState(false);
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
@@ -253,9 +291,18 @@ export default function SurveyFormPage() {
   };
 
   const handleSaveDraft = (silent = false) => {
-    if (!farmerName || !cropName) return;
+    if (!farmerName && !cropName) return;
 
-    const draftId = `draft_${farmerPhone || Date.now()}`;
+    let activeId = draftId;
+    if (!activeId) {
+      activeId = `draft_${Date.now()}`;
+      setDraftId(activeId);
+      if (typeof window !== "undefined") {
+        const newUrl = `${window.location.pathname}?draftId=${activeId}`;
+        window.history.replaceState({ path: newUrl }, "", newUrl);
+      }
+    }
+
     const draftSurvey = {
       farmerName,
       farmerPhone,
@@ -271,18 +318,17 @@ export default function SurveyFormPage() {
     };
 
     if (typeof window !== "undefined") {
-      localStorage.setItem(`draft_${draftId}`, JSON.stringify(draftSurvey));
+      localStorage.setItem(`draft_${activeId}`, JSON.stringify(draftSurvey));
 
       const draftListStr = localStorage.getItem("survey_drafts");
       let draftsList = draftListStr ? JSON.parse(draftListStr) : [];
       
-      // Update existing draft or add new
-      const existingIdx = draftsList.findIndex((d: any) => d.id === draftId);
+      const existingIdx = draftsList.findIndex((d: any) => d.id === activeId);
       const draftMeta = {
-        id: draftId,
-        farmerName,
+        id: activeId,
+        farmerName: farmerName || "Unnamed Farmer",
         cropName,
-        cropType,
+        cropType: cropType || "Unknown Type",
         area: draftSurvey.area,
         isDamaged,
         savedAt: new Date().toISOString(),
@@ -345,6 +391,20 @@ export default function SurveyFormPage() {
     try {
       await api.post("/surveys", payload);
       setSuccess(true);
+
+      // Clean up draft from localStorage on successful upload
+      if (draftId) {
+        if (typeof window !== "undefined") {
+          localStorage.removeItem(`draft_${draftId}`);
+          const draftListStr = localStorage.getItem("survey_drafts");
+          if (draftListStr) {
+            const draftsList = JSON.parse(draftListStr);
+            const updated = draftsList.filter((d: any) => d.id !== draftId);
+            localStorage.setItem("survey_drafts", JSON.stringify(updated));
+          }
+        }
+      }
+
       setTimeout(() => {
         router.push("/aew");
       }, 2000);
@@ -796,17 +856,28 @@ export default function SurveyFormPage() {
 
         {/* Navigation buttons */}
         <div className="flex justify-between items-center pt-6 border-t border-neutral-200 dark:border-neutral-800">
-          {step > 1 ? (
+          <div className="flex gap-2">
+            {step > 1 ? (
+              <button
+                type="button"
+                onClick={() => setStep(step - 1)}
+                className="min-h-[48px] rounded-xl border border-neutral-200 px-5 py-2.5 text-xs font-bold text-neutral-600 hover:bg-neutral-50 dark:border-neutral-800 dark:text-neutral-400 dark:hover:bg-neutral-800 transition"
+              >
+                Previous
+              </button>
+            ) : (
+              <div />
+            )}
+            
             <button
               type="button"
-              onClick={() => setStep(step - 1)}
-              className="min-h-[48px] rounded-xl border border-neutral-200 px-5 py-2.5 text-xs font-bold text-neutral-600 hover:bg-neutral-50 dark:border-neutral-800 dark:text-neutral-400 dark:hover:bg-neutral-800 transition"
+              onClick={() => handleSaveDraft(false)}
+              className="min-h-[48px] rounded-xl border border-dashed border-neutral-300 hover:border-brand-500 hover:text-brand-600 dark:border-neutral-800 dark:hover:border-brand-400 px-4 py-2.5 text-xs font-bold text-neutral-500 transition-all flex items-center gap-1.5"
             >
-              Previous
+              <Save className="h-4 w-4" />
+              Save Draft
             </button>
-          ) : (
-            <div />
-          )}
+          </div>
 
           {step < 4 ? (
             <button
