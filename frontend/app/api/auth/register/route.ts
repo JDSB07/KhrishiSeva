@@ -13,7 +13,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ status: "fail", message: "Please fill in all required fields" }, { status: 400 });
     }
 
-    const existingUser = await User.findOne({ phone });
+    let existingUser;
+    if (process.env.USE_MOCK_DB === "true") {
+      const { users } = require('@/lib/mockDb');
+      existingUser = users.find((u: any) => u.phone === phone);
+    } else {
+      existingUser = await User.findOne({ phone });
+    }
+
     if (existingUser) {
       return NextResponse.json({ status: "fail", message: "A user with this phone number already exists" }, { status: 400 });
     }
@@ -23,13 +30,40 @@ export async function POST(req: Request) {
     }
 
     if (policyId) {
-      const existingPolicy = await User.findOne({ policyId });
+      let existingPolicy;
+      if (process.env.USE_MOCK_DB === "true") {
+        const { users } = require('@/lib/mockDb');
+        existingPolicy = users.find((u: any) => u.policyId === policyId);
+      } else {
+        existingPolicy = await User.findOne({ policyId });
+      }
       if (existingPolicy) {
         return NextResponse.json({ status: "fail", message: "This Policy ID has already been registered" }, { status: 400 });
       }
     }
 
-    const newUser = await User.create({ name, email, phone, password, role, policyId, district, state });
+    let newUser;
+    if (process.env.USE_MOCK_DB === "true") {
+      const { users, hashPasswordSync } = require('@/lib/mockDb');
+      newUser = {
+        _id: "mock_user_" + Date.now(),
+        name,
+        email,
+        phone,
+        password: hashPasswordSync(password),
+        role,
+        policyId,
+        district,
+        state: state || "Bihar",
+        createdAt: new Date(),
+        toObject() {
+          return { ...this };
+        },
+      };
+      users.push(newUser);
+    } else {
+      newUser = await User.create({ name, email, phone, password, role, policyId, district, state });
+    }
     const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET || "super_secret_dev_key_123456", { expiresIn: "7d" });
 
     const userObj = { ...(newUser.toObject ? newUser.toObject() : newUser) };

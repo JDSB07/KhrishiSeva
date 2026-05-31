@@ -15,10 +15,19 @@ export async function POST(req: Request) {
     }
 
     let user;
-    if (role === "farmer") {
-      user = await User.findOne({ $or: [{ policyId: phone }, { phone: phone }] }).select("+password");
+    if (process.env.USE_MOCK_DB === "true") {
+      const { users } = require('@/lib/mockDb');
+      if (role === "farmer") {
+        user = users.find((u: any) => u.policyId === phone || u.phone === phone);
+      } else {
+        user = users.find((u: any) => u.phone === phone);
+      }
     } else {
-      user = await User.findOne({ phone }).select("+password");
+      if (role === "farmer") {
+        user = await User.findOne({ $or: [{ policyId: phone }, { phone: phone }] }).select("+password");
+      } else {
+        user = await User.findOne({ phone }).select("+password");
+      }
     }
 
     if (!user || user.role !== role) {
@@ -26,10 +35,16 @@ export async function POST(req: Request) {
     }
 
     let isCorrect = false;
-    if (role === "farmer") {
-      isCorrect = await (user as any).comparePassword(password) || user.policyId === password;
+    if (process.env.USE_MOCK_DB === "true") {
+      const isPasswordCorrect = bcrypt.compareSync(password, user.password);
+      const isPolicyCorrect = user.policyId === password;
+      isCorrect = isPasswordCorrect || isPolicyCorrect;
     } else {
-      isCorrect = await (user as any).comparePassword(password);
+      if (role === "farmer") {
+        isCorrect = await (user as any).comparePassword(password) || user.policyId === password;
+      } else {
+        isCorrect = await (user as any).comparePassword(password);
+      }
     }
 
     if (!isCorrect) {

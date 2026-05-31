@@ -13,19 +13,21 @@ export async function GET(req: Request) {
       return NextResponse.json({ status: "fail", message: "Unauthorized" }, { status: 401 });
     }
 
-    if (user.role !== 'officer') {
-      return NextResponse.json({ status: "fail", message: "Only officers can access all claims" }, { status: 403 });
+    if (user.role !== "farmer") {
+      return NextResponse.json({ status: "fail", message: "Only farmers can view their policy claims" }, { status: 403 });
     }
 
+    const userIdStr = user._id.toString();
+
     if (process.env.USE_MOCK_DB === "true") {
-      const { claims, surveys, users } = require('@/lib/mockDb');
-      const populatedClaims = claims.map((c: any) => {
+      const { claims, surveys } = require('@/lib/mockDb');
+      const myClaims = claims.filter((c: any) => c.farmer === userIdStr);
+
+      const populatedClaims = myClaims.map((c: any) => {
         const survey = surveys.find((s: any) => s._id === c.survey);
-        const farmer = users.find((u: any) => u._id === c.farmer);
         return {
           ...c,
-          survey: survey ? { ...survey } : { cropName: "Unknown", cropType: "Unknown", area: 0, status: c.status },
-          farmer: farmer ? { ...farmer } : { name: "Demo Farmer", phone: "9988776655", policyId: c.policyId }
+          survey: survey ? { ...survey } : { cropName: "Unknown", cropType: "Unknown", area: 0, status: c.status }
         };
       });
 
@@ -36,12 +38,11 @@ export async function GET(req: Request) {
       }, { status: 200 });
     }
 
-    const claimsList = await Claim.find({})
+    const claimsList = await Claim.find({ farmer: user._id })
       .populate({
         path: "survey",
-        select: "cropName cropType area district location status gpsWeatherStatus",
+        select: "cropName cropType area sowingDate comments status images",
       })
-      .populate("farmer", "name phone policyId district")
       .sort("-createdAt");
 
     return NextResponse.json({

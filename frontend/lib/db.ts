@@ -10,6 +10,12 @@ if (!cached) {
 }
 
 async function connectDB() {
+  if (process.env.USE_MOCK_DB === "true") {
+    const { seedMockDatabase } = require("./mockDb");
+    seedMockDatabase();
+    return;
+  }
+
   if (!MONGODB_URI) {
     // Bulletproof Rule #1: Log visible warning, throw standard error, DO NOT crash with process.exit
     console.error("CRITICAL: MONGODB_URI is missing");

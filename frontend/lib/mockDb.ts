@@ -1,12 +1,24 @@
 import bcrypt from "bcryptjs";
 
-// In-Memory arrays to simulate database collections
-export let users: any[] = [];
-export let surveys: any[] = [];
-export let claims: any[] = [];
-export let notifications: any[] = [];
-export let aiAnalyses: any[] = [];
-export let weatherLogs: any[] = [];
+// Initialize global mock database container if not present to persist data across Next.js re-compilations/Route Handlers
+if (!(global as any).mockDb) {
+  (global as any).mockDb = {
+    users: [],
+    surveys: [],
+    claims: [],
+    notifications: [],
+    aiAnalyses: [],
+    weatherLogs: [],
+    seeded: false
+  };
+}
+
+export const users = (global as any).mockDb.users;
+export const surveys = (global as any).mockDb.surveys;
+export const claims = (global as any).mockDb.claims;
+export const notifications = (global as any).mockDb.notifications;
+export const aiAnalyses = (global as any).mockDb.aiAnalyses;
+export const weatherLogs = (global as any).mockDb.weatherLogs;
 
 // Helper to hash passwords during mock registration
 export const hashPasswordSync = (password: string): string => {
@@ -16,16 +28,24 @@ export const hashPasswordSync = (password: string): string => {
 
 // Seed initial demo users into the mock database
 export const seedMockDatabase = () => {
-  if (users.length > 0) return; // already seeded
+  if ((global as any).mockDb.seeded) return; // already seeded
 
-  console.log("🌱 Seeding In-Memory Mock Database Store...");
+  console.log("🌱 Seeding In-Memory Mock Database Store (Global Cache)...");
   
   const hashedPassword = hashPasswordSync("password123");
 
-  // AEW Worker
+  // Clear existing mock data first
+  users.length = 0;
+  surveys.length = 0;
+  claims.length = 0;
+  notifications.length = 0;
+  aiAnalyses.length = 0;
+  weatherLogs.length = 0;
+
+  // 1. AEW Worker (Vikram Singh)
   users.push({
     _id: "mock_user_aew_123",
-    name: "Rajnish Kumar",
+    name: "Vikram Singh",
     phone: "9876543210",
     password: hashedPassword,
     role: "aew",
@@ -35,24 +55,38 @@ export const seedMockDatabase = () => {
     toObject() { return { ...this }; }
   });
 
-  // Farmer
+  // 2. Farmer 1 (Ramesh Prasad)
   users.push({
     _id: "mock_user_farmer_456",
-    name: "Hari Singh",
+    name: "Ramesh Prasad",
     phone: "9988776655",
     password: hashedPassword,
     role: "farmer",
-    policyId: "AGRI-98273",
+    policyId: "AGRI-88402",
     district: "Patna",
     state: "Bihar",
     createdAt: new Date(),
     toObject() { return { ...this }; }
   });
 
-  // District Officer
+  // 3. Farmer 2 (Sunita Devi)
+  users.push({
+    _id: "mock_user_farmer_101",
+    name: "Sunita Devi",
+    phone: "9876123456",
+    password: hashedPassword,
+    role: "farmer",
+    policyId: "AGRI-77319",
+    district: "Patna",
+    state: "Bihar",
+    createdAt: new Date(),
+    toObject() { return { ...this }; }
+  });
+
+  // 4. District Officer (Sanjay Verma)
   users.push({
     _id: "mock_user_officer_789",
-    name: "Amit Sharma",
+    name: "Sanjay Verma",
     phone: "9123456789",
     password: hashedPassword,
     role: "officer",
@@ -64,77 +98,81 @@ export const seedMockDatabase = () => {
 
   console.log("Mock users seeded successfully.");
 
-  // --- Mock Survey 1: Approved Claim (Wheat Pest Damage) ---
-  const survey1Id = "mock_survey_wheat_001";
   const dummyImage = "data:image/gif;base64,R0lGODlhAQABAIAAAAUEBAAAACwAAAAAAQABAAACAkQBADs=";
 
+  // --- Survey 1: Ramesh Prasad - Flood Damage (Pending) ---
+  const survey1Id = "mock_survey_rice_001";
   const survey1 = {
     _id: survey1Id,
-    farmerName: "Hari Singh",
+    farmerName: "Ramesh Prasad",
     farmerPhone: "9988776655",
-    policyId: "AGRI-98273",
-    cropName: "Wheat (गेंहू)",
-    cropType: "Kalyan Sona PBW-343",
-    area: 3.5,
-    sowingDate: new Date("2025-11-15"),
+    policyId: "AGRI-88402",
+    cropName: "Rice (धान)",
+    cropType: "Swarna Mansuri MTU-7029",
+    area: 4.5,
+    sowingDate: new Date("2025-06-15"),
     isDamaged: true,
     damageDetails: {
-      damageType: "Pest",
-      damageDescription: "Spotted severe yellow rust infestation across the main crop foliage.",
+      damageType: "Flood",
+      damageDescription: "Severe water logging and flooding across the field due to Ganga river overflow.",
       damageSeverity: "High"
     },
     images: [dummyImage],
     location: { lat: 25.5941, lng: 85.1376, accuracy: 8 },
     weatherData: {
-      temp: 26,
-      humidity: 65,
-      windSpeed: 8,
-      description: "Passing clouds, humid air",
-      rawResponse: { mock: true, temp: 26, humidity: 65, description: "humble breeze" }
+      temp: 22,
+      humidity: 95,
+      windSpeed: 14,
+      description: "Heavy rain, high river runoff",
+      rawResponse: { mock: true, temp: 22, humidity: 95, description: "heavy downpour" }
     },
     gpsWeatherStatus: "Verified",
-    status: "Approved",
-    comments: "High yellow rust pest damage verified. Matching local agricultural reports.",
-    createdBy: users[0], // Rajnish Kumar (AEW)
-    createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), // 5 days ago
+    status: "Pending",
+    comments: "",
+    createdBy: {
+      _id: users[0]._id,
+      name: users[0].name,
+      phone: users[0].phone,
+      district: users[0].district,
+      role: users[0].role
+    },
+    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
     toObject() { return this; }
   };
   surveys.push(survey1);
 
   // Weather Log for Survey 1
   weatherLogs.push({
-    _id: "mock_weatherlog_wheat_001",
+    _id: "mock_weatherlog_rice_001",
     survey: survey1Id,
     coordinates: survey1.location,
     weatherFetched: survey1.weatherData.rawResponse,
     status: "Match",
-    reason: "Local humidity of 65% matches yellow rust growth criteria.",
+    reason: "Local humidity of 95% and heavy downpour report matches the river overflow flood status.",
     createdAt: survey1.createdAt
   });
 
   // AI Analysis for Survey 1
   aiAnalyses.push({
-    _id: "mock_ai_wheat_001",
+    _id: "mock_ai_rice_001",
     survey: survey1Id,
-    cropHealth: 35,
-    damageType: "Pest Damage",
+    cropHealth: 25,
+    damageType: "Flood Damage",
     severity: "High",
-    confidence: 92,
-    recommendation: "Apply chlorpyrifos foliar spray. Prune infected stems immediately.",
+    confidence: 94,
+    recommendation: "Drain excess water immediately. Field is completely submerged. Re-sowing may be required if roots rot.",
     createdAt: survey1.createdAt
   });
 
   // Claim for Survey 1
   claims.push({
-    _id: "mock_claim_wheat_001",
+    _id: "mock_claim_rice_001",
     survey: survey1Id,
-    farmer: users[1]._id, // Hari Singh
-    policyId: "AGRI-98273",
-    status: "Approved",
-    estimatedPayout: 35000, // 3.5 acres * 10,000 for High severity
-    approvedPayout: 35000,
-    resolutionDate: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
-    remarks: "Verification completed by Officer Sharma. Full settlement approved.",
+    farmer: users[1]._id, // Ramesh Prasad
+    policyId: "AGRI-88402",
+    status: "Initiated",
+    estimatedPayout: 45000, // 4.5 acres * 10,000 for High severity
+    approvedPayout: 0,
     createdAt: survey1.createdAt,
     toObject() { return this; }
   });
@@ -143,87 +181,106 @@ export const seedMockDatabase = () => {
   notifications.push({
     _id: "mock_notif_f_001",
     recipient: users[1]._id,
-    titleEn: "Insurance Claim Approved!",
-    titleHi: "बीमा दावा स्वीकृत किया गया!",
-    messageEn: "Your crop claim for Wheat (गेंहू) has been approved. Payout of ₹35,000 has been initiated.",
-    messageHi: "आपकी Wheat (गेंहू) फसल के लिए आपका दावा स्वीकृत कर दिया गया है। ₹35,000 का भुगतान शुरू हो गया है।",
-    type: "approved",
+    titleEn: "Crop Damage Survey Submitted",
+    titleHi: "फसल क्षति सर्वेक्षण जमा किया गया",
+    messageEn: "Your crop damage report for Rice has been submitted. Status is pending review.",
+    messageHi: "धान की फसल के नुकसान की रिपोर्ट जमा हो गई है। स्थिति समीक्षा के लिए लंबित है।",
+    type: "survey_submitted",
     surveyId: survey1Id,
     read: false,
-    createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000)
+    createdAt: survey1.createdAt
+  });
+
+  // Officer Notification for Survey 1
+  notifications.push({
+    _id: "mock_notif_o_001",
+    recipient: users[3]._id, // Sanjay Verma (Officer)
+    titleEn: "New Claim Pending Review: Policy #AGRI-88402",
+    titleHi: "नया दावा समीक्षा लंबित है: पॉलिसी #AGRI-88402",
+    messageEn: "A new flood survey has been submitted by Vikram Singh for farmer Ramesh Prasad.",
+    messageHi: "विक्रम सिंह द्वारा किसान रमेश प्रसाद के लिए बाढ़ का एक नया सर्वेक्षण प्रस्तुत किया गया है।",
+    type: "survey_submitted",
+    surveyId: survey1Id,
+    read: false,
+    createdAt: survey1.createdAt
   });
 
 
-  // --- Mock Survey 2: Rejected Claim (Flood Fraud Attempt) ---
-  const survey2Id = "mock_survey_paddy_002";
-
+  // --- Survey 2: Ramesh Prasad - Pest Infestation (Approved) ---
+  const survey2Id = "mock_survey_mustard_002";
   const survey2 = {
     _id: survey2Id,
-    farmerName: "Hari Singh",
+    farmerName: "Ramesh Prasad",
     farmerPhone: "9988776655",
-    policyId: "AGRI-98273",
-    cropName: "Paddy (धान)",
-    cropType: "Basmati-370",
+    policyId: "AGRI-88402",
+    cropName: "Mustard (सरसों)",
+    cropType: "Pusa Mustard-25",
     area: 2.0,
-    sowingDate: new Date("2025-07-01"),
+    sowingDate: new Date("2025-10-10"),
     isDamaged: true,
     damageDetails: {
-      damageType: "Flood",
-      damageDescription: "Reported deep inundation of the paddies due to flash storms.",
-      damageSeverity: "High"
+      damageType: "Pest",
+      damageDescription: "Severe aphid outbreak causing leaves to curl and dry, reducing oilseed yield.",
+      damageSeverity: "Medium"
     },
     images: [dummyImage],
-    location: { lat: 25.6124, lng: 85.1105, accuracy: 12 },
+    location: { lat: 25.5891, lng: 85.1482, accuracy: 10 },
     weatherData: {
-      temp: 41,
-      humidity: 15,
-      windSpeed: 14,
-      description: "Severe hot air, dry winds",
-      rawResponse: { mock: true, temp: 41, humidity: 15, description: "extreme heat" }
+      temp: 28,
+      humidity: 55,
+      windSpeed: 8,
+      description: "Dry and humid skies",
+      rawResponse: { mock: true, temp: 28, humidity: 55, description: "dry wind" }
     },
-    gpsWeatherStatus: "Suspicious", // High temperature and low humidity mismatches flood claim
-    status: "Rejected",
-    comments: "Claim rejected. Anti-fraud checks detected dry weather conditions (41°C, 15% humidity) contradicting the flood declaration.",
-    createdBy: users[0],
-    createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000), // 10 days ago
+    gpsWeatherStatus: "Verified",
+    status: "Approved",
+    comments: "Verified by Officer Verma. High incidence of aphids matching district agricultural department alerts.",
+    createdBy: {
+      _id: users[0]._id,
+      name: users[0].name,
+      phone: users[0].phone,
+      district: users[0].district,
+      role: users[0].role
+    },
+    createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), // 5 days ago
     toObject() { return this; }
   };
   surveys.push(survey2);
 
   // Weather Log for Survey 2
   weatherLogs.push({
-    _id: "mock_weatherlog_paddy_002",
+    _id: "mock_weatherlog_mustard_002",
     survey: survey2Id,
     coordinates: survey2.location,
     weatherFetched: survey2.weatherData.rawResponse,
-    status: "Mismatch",
-    reason: "Reported Flood damage conflicts with recorded 15% local relative humidity.",
+    status: "Match",
+    reason: "Mild temperatures and 55% humidity match optimal conditions for aphid pest reproduction.",
     createdAt: survey2.createdAt
   });
 
   // AI Analysis for Survey 2
   aiAnalyses.push({
-    _id: "mock_ai_paddy_002",
+    _id: "mock_ai_mustard_002",
     survey: survey2Id,
-    cropHealth: 88,
-    damageType: "Healthy Crop",
-    severity: "Low",
+    cropHealth: 60,
+    damageType: "Pest Damage",
+    severity: "Medium",
     confidence: 89,
-    recommendation: "Crop foliage appears mostly green and dry. Monitor water retention.",
+    recommendation: "Apply imidacloprid spray or neem-based organic pesticide to control aphid spread.",
     createdAt: survey2.createdAt
   });
 
   // Claim for Survey 2
   claims.push({
-    _id: "mock_claim_paddy_002",
+    _id: "mock_claim_mustard_002",
     survey: survey2Id,
     farmer: users[1]._id,
-    policyId: "AGRI-98273",
-    status: "Rejected",
-    estimatedPayout: 20000,
-    approvedPayout: 0,
-    resolutionDate: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000),
-    remarks: "Anti-fraud weather verification flagged this claim. Soil and air moisture confirm no flooding.",
+    policyId: "AGRI-88402",
+    status: "Approved",
+    estimatedPayout: 10000, // 2.0 acres * 5,000 for Medium severity
+    approvedPayout: 10000,
+    resolutionDate: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // 3 days ago
+    remarks: "Field visit and AI analysis align. Settlement of ₹10,000 approved.",
     createdAt: survey2.createdAt,
     toObject() { return this; }
   });
@@ -232,49 +289,54 @@ export const seedMockDatabase = () => {
   notifications.push({
     _id: "mock_notif_f_002",
     recipient: users[1]._id,
-    titleEn: "Insurance Claim Rejected",
-    titleHi: "बीमा दावा खारिज कर दिया गया",
-    messageEn: "Your claim for Paddy (धान) was rejected by the audit officer due to climatic mismatches.",
-    messageHi: "जलवायु विसंगतियों के कारण लेखा परीक्षा अधिकारी द्वारा धान की फसल का आपका दावा खारिज कर दिया गया था।",
-    type: "rejected",
+    titleEn: "Insurance Claim Approved!",
+    titleHi: "बीमा दावा स्वीकृत किया गया!",
+    messageEn: "Your claim for Mustard crop has been approved. Payout of ₹10,000 has been initiated.",
+    messageHi: "सरसों की फसल के लिए आपका दावा स्वीकृत हो गया है। ₹10,000 का भुगतान शुरू कर दिया गया है।",
+    type: "approved",
     surveyId: survey2Id,
     read: false,
-    createdAt: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000)
+    createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000)
   });
 
 
-  // --- Mock Survey 3: Pending Claim (Maize Drought Damage) ---
+  // --- Survey 3: Sunita Devi - Drought Mismatch (Rejected/Suspicious) ---
   const survey3Id = "mock_survey_maize_003";
-
   const survey3 = {
     _id: survey3Id,
-    farmerName: "Hari Singh",
-    farmerPhone: "9988776655",
-    policyId: "AGRI-98273",
+    farmerName: "Sunita Devi",
+    farmerPhone: "9876123456",
+    policyId: "AGRI-77319",
     cropName: "Maize (मक्का)",
-    cropType: "Ganga-11",
-    area: 4.0,
-    sowingDate: new Date("2026-03-10"),
+    cropType: "Ganga Safed-2",
+    area: 3.0,
+    sowingDate: new Date("2026-03-12"),
     isDamaged: true,
     damageDetails: {
       damageType: "Drought",
-      damageDescription: "Foliage drying up due to lack of ground moisture and high heat.",
-      damageSeverity: "Medium"
+      damageDescription: "Claiming severe crop drying and water shortage across the field.",
+      damageSeverity: "High"
     },
     images: [dummyImage],
-    location: { lat: 25.5891, lng: 85.1482, accuracy: 10 },
+    location: { lat: 25.6124, lng: 85.1105, accuracy: 12 },
     weatherData: {
-      temp: 39,
-      humidity: 28,
-      windSpeed: 16,
-      description: "Haze and dry winds",
-      rawResponse: { mock: true, temp: 39, humidity: 28, description: "dry heat" }
+      temp: 22,
+      humidity: 92,
+      windSpeed: 10,
+      description: "Overcast with light rain showers",
+      rawResponse: { mock: true, temp: 22, humidity: 92, description: "drizzle" }
     },
-    gpsWeatherStatus: "Verified",
-    status: "Pending",
-    comments: "",
-    createdBy: users[0],
-    createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), // 1 day ago
+    gpsWeatherStatus: "Suspicious", // Drought claimed but rain/high humidity detected
+    status: "Rejected",
+    comments: "Rejected. Claimant reported drought damage, but district weather radar recorded rainfall and 92% humidity over the past 7 days.",
+    createdBy: {
+      _id: users[0]._id,
+      name: users[0].name,
+      phone: users[0].phone,
+      district: users[0].district,
+      role: users[0].role
+    },
+    createdAt: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000), // 8 days ago
     toObject() { return this; }
   };
   surveys.push(survey3);
@@ -285,8 +347,8 @@ export const seedMockDatabase = () => {
     survey: survey3Id,
     coordinates: survey3.location,
     weatherFetched: survey3.weatherData.rawResponse,
-    status: "Match",
-    reason: "Drought metrics match high temperature (39°C) and low humidity (28%).",
+    status: "Mismatch",
+    reason: "Reported drought conflicts with recorded 92% local humidity and light rain showers.",
     createdAt: survey3.createdAt
   });
 
@@ -294,11 +356,11 @@ export const seedMockDatabase = () => {
   aiAnalyses.push({
     _id: "mock_ai_maize_003",
     survey: survey3Id,
-    cropHealth: 45,
-    damageType: "Drought Damage",
-    severity: "Medium",
-    confidence: 87,
-    recommendation: "Introduce immediate water sprinklers. Apply potassium nitrate nutrient booster.",
+    cropHealth: 85,
+    damageType: "Healthy Crop",
+    severity: "Low",
+    confidence: 91,
+    recommendation: "Crop foliage index is normal. Soil moisture is sufficient. Drought claim rejected by AI model.",
     createdAt: survey3.createdAt
   });
 
@@ -306,288 +368,124 @@ export const seedMockDatabase = () => {
   claims.push({
     _id: "mock_claim_maize_003",
     survey: survey3Id,
-    farmer: users[1]._id,
-    policyId: "AGRI-98273",
-    status: "Initiated",
-    estimatedPayout: 20000, // 4 acres * 5,000 for Medium severity
+    farmer: users[2]._id, // Sunita Devi
+    policyId: "AGRI-77319",
+    status: "Rejected",
+    estimatedPayout: 15000, // 3.0 acres * 5,000 for Medium or 10,000 for High
     approvedPayout: 0,
+    resolutionDate: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000),
+    remarks: "Claim verification failed due to weather mismatch and healthy crop readings.",
     createdAt: survey3.createdAt,
     toObject() { return this; }
   });
 
-  // Notifications for Survey 3
+  // Notification for Survey 3
   notifications.push({
     _id: "mock_notif_f_003",
-    recipient: users[1]._id,
-    titleEn: "Crop Damage Survey Submitted",
-    titleHi: "फसल क्षति सर्वेक्षण जमा किया गया",
-    messageEn: "An AEW worker has submitted a damage report for your Maize (मक्का) crop. Audit is pending.",
-    messageHi: "एक कृषि कार्यकर्ता ने आपकी मक्का फसल के लिए नुकसान की रिपोर्ट जमा की है। ऑडिट लंबित है।",
-    type: "survey_submitted",
+    recipient: users[2]._id,
+    titleEn: "Insurance Claim Rejected",
+    titleHi: "बीमा दावा खारिज कर दिया गया",
+    messageEn: "Your claim for Maize crop has been rejected due to climatic inconsistencies.",
+    messageHi: "मक्का की फसल के लिए आपका दावा जलवायु विसंगतियों के कारण खारिज कर दिया गया है।",
+    type: "rejected",
     surveyId: survey3Id,
     read: false,
-    createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000)
-  });
-
-  // Officer Notification for Survey 3
-  notifications.push({
-    _id: "mock_notif_o_003",
-    recipient: users[2]._id, // Amit Sharma (Officer)
-    titleEn: "New Claim Pending Review: Policy #AGRI-98273",
-    titleHi: "नया दावा समीक्षा लंबित है: पॉलिसी #AGRI-98273",
-    messageEn: "A new survey was submitted by Rajnish Kumar for farmer Hari Singh. Weather status is Verified.",
-    messageHi: "रजनीश कुमार द्वारा किसान हरि सिंह के लिए एक नया सर्वेक्षण प्रस्तुत किया गया है। मौसम की स्थिति सत्यापित है।",
-    type: "survey_submitted",
-    surveyId: survey3Id,
-    read: false,
-    createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000)
+    createdAt: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000)
   });
 
 
-  // --- Mock Survey 4: Resurvey Required (Pulses Pest Damage) ---
-  const survey4Id = "mock_survey_pulses_004";
-
+  // --- Survey 4: Sunita Devi - Heavy Rain Lodging (Resurvey Required) ---
+  const survey4Id = "mock_survey_wheat_004";
   const survey4 = {
     _id: survey4Id,
-    farmerName: "Hari Singh",
-    farmerPhone: "9988776655",
-    policyId: "AGRI-98273",
-    cropName: "Pulses (दालें)",
-    cropType: "Pusa-16 (Arhar)",
-    area: 1.5,
-    sowingDate: new Date("2026-01-20"),
+    farmerName: "Sunita Devi",
+    farmerPhone: "9876123456",
+    policyId: "AGRI-77319",
+    cropName: "Wheat (गेंहू)",
+    cropType: "Sonalika HD-1553",
+    area: 5.0,
+    sowingDate: new Date("2025-11-20"),
     isDamaged: true,
     damageDetails: {
-      damageType: "Pest",
-      damageDescription: "Reported minor leaf damage on young shoots.",
-      damageSeverity: "Low"
+      damageType: "Heavy Rain",
+      damageDescription: "Unseasonal heavy rain lodged (flattened) the wheat shoots close to harvest.",
+      damageSeverity: "Medium"
     },
     images: [dummyImage],
     location: { lat: 25.5910, lng: 85.1299, accuracy: 15 },
     weatherData: {
-      temp: 24,
-      humidity: 50,
-      windSpeed: 10,
-      description: "Clear skies",
-      rawResponse: { mock: true, temp: 24, humidity: 50, description: "clear" }
+      temp: 19,
+      humidity: 88,
+      windSpeed: 16,
+      description: "Storm winds and overcast sky",
+      rawResponse: { mock: true, temp: 19, humidity: 88, description: "strong wind" }
     },
     gpsWeatherStatus: "Verified",
     status: "Resurvey Required",
-    comments: "Image clarity is low. Please capture closer photos of the crop roots and stem base to evaluate pest damage severity.",
-    createdBy: users[0],
-    createdAt: new Date(Date.now() - 12 * 24 * 60 * 60 * 1000), // 12 days ago
+    comments: "Camera photos are blurry. Please take high-contrast closeups of the lodged stalk bases to calculate grain loss percent.",
+    createdBy: {
+      _id: users[0]._id,
+      name: users[0].name,
+      phone: users[0].phone,
+      district: users[0].district,
+      role: users[0].role
+    },
+    createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000), // 10 days ago
     toObject() { return this; }
   };
   surveys.push(survey4);
 
   // Weather Log for Survey 4
   weatherLogs.push({
-    _id: "mock_weatherlog_pulses_004",
+    _id: "mock_weatherlog_wheat_004",
     survey: survey4Id,
     coordinates: survey4.location,
     weatherFetched: survey4.weatherData.rawResponse,
     status: "Match",
-    reason: "Weather metrics correlate with dry field conditions suitable for pulses growth.",
+    reason: "Recorded unseasonal high winds (16 km/h) and moisture support crop lodging claims.",
     createdAt: survey4.createdAt
   });
 
   // AI Analysis for Survey 4
   aiAnalyses.push({
-    _id: "mock_ai_pulses_004",
+    _id: "mock_ai_wheat_004",
     survey: survey4Id,
-    cropHealth: 72,
-    damageType: "Pest Damage",
-    severity: "Low",
-    confidence: 88,
-    recommendation: "Apply organic neem extract spray. Clear field boundaries of weeds.",
+    cropHealth: 50,
+    damageType: "Lodge Damage",
+    severity: "Medium",
+    confidence: 87,
+    recommendation: "Crop flattened. Harvest early if grain is mature. Avoid chemical spray.",
     createdAt: survey4.createdAt
   });
 
-  // Claim for Survey 4 (Under Review when resurvey is required)
+  // Claim for Survey 4
   claims.push({
-    _id: "mock_claim_pulses_004",
+    _id: "mock_claim_wheat_004",
     survey: survey4Id,
-    farmer: users[1]._id,
-    policyId: "AGRI-98273",
+    farmer: users[2]._id,
+    policyId: "AGRI-77319",
     status: "Under Review",
-    estimatedPayout: 3000, // 1.5 acres * 2000 for Low severity
+    estimatedPayout: 25000, // 5.0 acres * 5,000 for Medium severity
     approvedPayout: 0,
-    remarks: "Resurvey requested. Waiting for AEW worker to submit high-resolution crop photos.",
+    remarks: "Resurvey requested. Waiting for AEW worker to submit clear crop pictures.",
     createdAt: survey4.createdAt,
     toObject() { return this; }
   });
 
-  // Farmer Notification for Survey 4
+  // Notification for Survey 4
   notifications.push({
     _id: "mock_notif_f_004",
-    recipient: users[1]._id,
-    titleEn: "Resurvey Scheduled for Pulses",
-    titleHi: "पुनः सर्वेक्षण निर्धारित (दालें)",
-    messageEn: "The review officer has requested a resurvey of your field. Reason: Image clarity is too low.",
-    messageHi: "समीक्षा अधिकारी ने आपके खेत के पुनः सर्वेक्षण का अनुरोध किया है। कारण: छवि स्पष्टता बहुत कम है।",
+    recipient: users[2]._id,
+    titleEn: "Resurvey Scheduled for Wheat",
+    titleHi: "पुनः सर्वेक्षण निर्धारित (गेंहू)",
+    messageEn: "The review officer has requested a resurvey of your field due to blurry photos.",
+    messageHi: "समीक्षा अधिकारी ने धुंधली तस्वीरों के कारण आपके खेत के पुनः सर्वेक्षण का अनुरोध किया है।",
     type: "resurvey",
     surveyId: survey4Id,
     read: false,
-    createdAt: new Date(Date.now() - 11 * 24 * 60 * 60 * 1000)
+    createdAt: new Date(Date.now() - 9 * 24 * 60 * 60 * 1000)
   });
 
-
-  // --- Mock Survey 5: Healthy Crop (Paddy) ---
-  const survey5Id = "mock_survey_paddy_healthy_005";
-
-  const survey5 = {
-    _id: survey5Id,
-    farmerName: "Hari Singh",
-    farmerPhone: "9988776655",
-    policyId: "AGRI-98273",
-    cropName: "Paddy (धान)",
-    cropType: "Pusa Basmati 1121",
-    area: 5.0,
-    sowingDate: new Date("2025-07-15"),
-    isDamaged: false, // Healthy crop
-    images: [dummyImage],
-    location: { lat: 25.6015, lng: 85.1220, accuracy: 6 },
-    weatherData: {
-      temp: 31,
-      humidity: 82,
-      windSpeed: 12,
-      description: "Humid air, scattered cloud cover",
-      rawResponse: { mock: true, temp: 31, humidity: 82, description: "monsoon clouds" }
-    },
-    gpsWeatherStatus: "Verified",
-    status: "Approved", // Approved as verified healthy report
-    comments: "Healthy crop verified. Excellent growth index and standard soil irrigation detected.",
-    createdBy: users[0],
-    createdAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000), // 15 days ago
-    toObject() { return this; }
-  };
-  surveys.push(survey5);
-
-  // Weather Log for Survey 5
-  weatherLogs.push({
-    _id: "mock_weatherlog_paddy_005",
-    survey: survey5Id,
-    coordinates: survey5.location,
-    weatherFetched: survey5.weatherData.rawResponse,
-    status: "Match",
-    reason: "Weather indicators (82% humidity) correlate perfectly with normal paddy water levels.",
-    createdAt: survey5.createdAt
-  });
-
-  // AI Analysis for Survey 5
-  aiAnalyses.push({
-    _id: "mock_ai_paddy_005",
-    survey: survey5Id,
-    cropHealth: 96,
-    damageType: "Healthy Crop",
-    severity: "Low",
-    confidence: 95,
-    recommendation: "Maintain field moisture level. Standard nitrogen application is sufficient.",
-    createdAt: survey5.createdAt
-  });
-
-  // No Claim record is generated when isDamaged is false.
-
-  // Notification for Survey 5
-  notifications.push({
-    _id: "mock_notif_f_005",
-    recipient: users[1]._id,
-    titleEn: "Crop Survey Report Approved",
-    titleHi: "फसल सर्वेक्षण रिपोर्ट स्वीकृत",
-    messageEn: "Your Paddy crop survey has been audited as healthy and approved. No active claim required.",
-    messageHi: "आपकी धान की फसल के सर्वेक्षण को स्वस्थ और स्वीकृत के रूप में ऑडिट किया गया है। किसी सक्रिय दावे की आवश्यकता नहीं है।",
-    type: "approved",
-    surveyId: survey5Id,
-    read: true,
-    createdAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000)
-  });
-
-
-  // --- Mock Survey 6: Pending Claim (Wheat Drought Damage) ---
-  const survey6Id = "mock_survey_wheat_drought_006";
-
-  const survey6 = {
-    _id: survey6Id,
-    farmerName: "Hari Singh",
-    farmerPhone: "9988776655",
-    policyId: "AGRI-98273",
-    cropName: "Wheat (गेंहू)",
-    cropType: "Sonalika HD-1553",
-    area: 2.0,
-    sowingDate: new Date("2025-11-20"),
-    isDamaged: true,
-    damageDetails: {
-      damageType: "Drought",
-      damageDescription: "Signs of moisture stress. Leaf tips showing chlorosis.",
-      damageSeverity: "Medium"
-    },
-    images: [dummyImage],
-    location: { lat: 25.5901, lng: 85.1510, accuracy: 10 },
-    weatherData: {
-      temp: 34,
-      humidity: 32,
-      windSpeed: 15,
-      description: "Hazy sunshine, dry heat",
-      rawResponse: { mock: true, temp: 34, humidity: 32, description: "dry hot" }
-    },
-    gpsWeatherStatus: "Verified",
-    status: "Pending",
-    comments: "",
-    createdBy: users[0],
-    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
-    toObject() { return this; }
-  };
-  surveys.push(survey6);
-
-  // Weather Log for Survey 6
-  weatherLogs.push({
-    _id: "mock_weatherlog_wheat_drought_006",
-    survey: survey6Id,
-    coordinates: survey6.location,
-    weatherFetched: survey6.weatherData.rawResponse,
-    status: "Match",
-    reason: "Drought condition verified by high heat (34°C) and low relative humidity (32%).",
-    createdAt: survey6.createdAt
-  });
-
-  // AI Analysis for Survey 6
-  aiAnalyses.push({
-    _id: "mock_ai_wheat_drought_006",
-    survey: survey6Id,
-    cropHealth: 55,
-    damageType: "Drought Damage",
-    severity: "Medium",
-    confidence: 90,
-    recommendation: "Provide light sprinkler irrigation. Avoid heavy chemical fertilizers at this stage.",
-    createdAt: survey6.createdAt
-  });
-
-  // Claim for Survey 6
-  claims.push({
-    _id: "mock_claim_wheat_drought_006",
-    survey: survey6Id,
-    farmer: users[1]._id,
-    policyId: "AGRI-98273",
-    status: "Initiated",
-    estimatedPayout: 10000, // 2 acres * 5000 rate for Medium severity
-    approvedPayout: 0,
-    createdAt: survey6.createdAt,
-    toObject() { return this; }
-  });
-
-  // Officer Notification for Survey 6
-  notifications.push({
-    _id: "mock_notif_o_006",
-    recipient: users[2]._id,
-    titleEn: "New Claim Pending Review: Policy #AGRI-98273",
-    titleHi: "नया दावा समीक्षा लंबित है: पॉलिसी #AGRI-98273",
-    messageEn: "A new survey was submitted by Rajnish Kumar for farmer Hari Singh. Weather status is Verified.",
-    messageHi: "रजनीश कुमार द्वारा किसान हरि सिंह के लिए एक नया सर्वेक्षण प्रस्तुत किया गया है। मौसम की स्थिति सत्यापित है।",
-    type: "survey_submitted",
-    surveyId: survey6Id,
-    read: false,
-    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000)
-  });
-
+  (global as any).mockDb.seeded = true;
   console.log("Mock data (Surveys, Claims, WeatherLogs, AIAnalyses, Notifications) seeded successfully.");
 };

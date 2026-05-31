@@ -1,5 +1,5 @@
 import React from "react";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { AuthProvider } from "../hooks/AuthContext";
 import { LanguageProvider } from "../hooks/LanguageContext";
 import Navbar from "../components/Navbar";
@@ -9,13 +9,19 @@ export const metadata: Metadata = {
   title: "KrishiSeva - Crop Insurance Verification",
   description: "AI-Powered crop damage assessment and verification system.",
   manifest: "/manifest.json",
-  themeColor: "#22c55e",
-  viewport: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
     title: "KrishiSeva",
   },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#22c55e",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export default function RootLayout({

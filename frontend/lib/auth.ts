@@ -13,6 +13,11 @@ export async function getUserFromReq(req: Request) {
 
   try {
     const decoded: any = jwt.verify(token, process.env.JWT_SECRET || 'super_secret_dev_key_123456');
+    if (process.env.USE_MOCK_DB === 'true') {
+      const { users } = require('./mockDb');
+      const user = users.find((u: any) => u._id === decoded.id);
+      return user || null;
+    }
     const user = await User.findById(decoded.id);
     return user || null;
   } catch (error) {

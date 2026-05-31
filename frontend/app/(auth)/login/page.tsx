@@ -137,7 +137,7 @@ function LoginContent() {
                 <Phone className="h-4 w-4" />
               </span>
               <input
-                type="tel"
+                type={role === "farmer" ? "text" : "tel"}
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder={role === "farmer" ? "AGRI-98273" : "9876543210"}

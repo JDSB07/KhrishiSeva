@@ -5,7 +5,7 @@ import Notification from '@/lib/models/Notification';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(req: Request) {
+export async function PUT(req: Request) {
   try {
     await connectDB();
     const user = await getUserFromReq(req);
@@ -17,26 +17,26 @@ export async function GET(req: Request) {
 
     if (process.env.USE_MOCK_DB === "true") {
       const { notifications } = require('@/lib/mockDb');
-      const myNotifs = notifications
-        .filter((n: any) => n.recipient === userIdStr)
-        .sort((a: any, b: any) => b.createdAt.getTime() - a.createdAt.getTime())
-        .slice(0, 50);
+      notifications.forEach((n: any) => {
+        if (n.recipient === userIdStr && !n.read) {
+          n.read = true;
+        }
+      });
 
       return NextResponse.json({
         status: "success",
-        results: myNotifs.length,
-        notifications: myNotifs,
+        message: "All notifications marked as read",
       }, { status: 200 });
     }
 
-    const notificationsList = await Notification.find({ recipient: user._id })
-      .sort("-createdAt")
-      .limit(50);
+    await Notification.updateMany(
+      { recipient: user._id, read: false },
+      { $set: { read: true } }
+    );
 
     return NextResponse.json({
       status: "success",
-      results: notificationsList.length,
-      notifications: notificationsList,
+      message: "All notifications marked as read",
     }, { status: 200 });
 
   } catch (error: any) {
