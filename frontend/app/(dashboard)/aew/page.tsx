@@ -111,25 +111,78 @@ export default function AewDashboard() {
   const handleSyncDrafts = async () => {
     if (!online || drafts.length === 0) return;
     setSyncing(true);
+    
+    const remainingDrafts: DraftSurvey[] = [];
+    let syncedCount = 0;
+    let incompleteCount = 0;
+    let failedCount = 0;
+
     try {
-      // Loop drafts and post
       for (const draft of drafts) {
-        // Find full draft object in localStorage
         const fullDraftStr = localStorage.getItem(`draft_${draft.id}`);
-        if (fullDraftStr) {
-          const fullDraft = JSON.parse(fullDraftStr);
+        if (!fullDraftStr) {
+          continue;
+        }
+
+        let fullDraft;
+        try {
+          fullDraft = JSON.parse(fullDraftStr);
+        } catch (e) {
+          console.error("Failed to parse draft string:", e);
+          continue;
+        }
+        
+        // Validate draft completeness before sending
+        const isComplete = (
+          fullDraft.farmerName &&
+          fullDraft.farmerPhone &&
+          fullDraft.policyId &&
+          fullDraft.cropName &&
+          fullDraft.cropType &&
+          fullDraft.area &&
+          fullDraft.sowingDate &&
+          fullDraft.images &&
+          fullDraft.images.length > 0 &&
+          fullDraft.location &&
+          fullDraft.location.lat &&
+          fullDraft.location.lng
+        );
+
+        if (!isComplete) {
+          incompleteCount++;
+          remainingDrafts.push(draft);
+          continue;
+        }
+
+        try {
           await api.post("/surveys", fullDraft);
-          // Clean up
+          // Clean up individual draft from localStorage
           localStorage.removeItem(`draft_${draft.id}`);
+          syncedCount++;
+        } catch (postErr) {
+          console.error(`Failed to post draft ${draft.id}:`, postErr);
+          failedCount++;
+          remainingDrafts.push(draft);
         }
       }
-      // Clear drafts list
-      localStorage.removeItem("survey_drafts");
-      setDrafts([]);
+
+      // Update the survey_drafts metadata list with the remaining drafts
+      localStorage.setItem("survey_drafts", JSON.stringify(remainingDrafts));
+      setDrafts(remainingDrafts);
       await fetchData();
+
+      // Show friendly summary notification
+      if (failedCount > 0) {
+        alert(`Sync completed with some errors. Synced: ${syncedCount}, Failed (network/server error): ${failedCount}, Incomplete: ${incompleteCount}.`);
+      } else if (incompleteCount > 0) {
+        alert(`Synced ${syncedCount} draft(s) successfully! ${incompleteCount} draft(s) are incomplete and were kept in the active drafts list.`);
+      } else {
+        alert(`All ${syncedCount} draft(s) synced successfully!`);
+      }
+
     } catch (err) {
-      console.error("Sync failed:", err);
-      alert("Some drafts failed to sync. Please try again.");
+      console.error("Sync main process error:", err);
+      alert("An error occurred during sync. Please try again.");
     } finally {
       setSyncing(false);
     }
